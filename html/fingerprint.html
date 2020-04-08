@@ -1,0 +1,551 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN">
+<html xmlns:mwsh="http://www.mathworks.com/namespace/mcode/v1/syntaxhighlight.dtd">
+   <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   
+      <!--
+This HTML is auto-generated from an M-file.
+To make changes, update the M-file and republish this document.
+      -->
+      <title>FingerPrint Demo</title>
+      <meta name="generator" content="MATLAB 7.5">
+      <meta name="date" content="2007-11-30">
+      <meta name="m-file" content="fingerprint"><style>
+
+body {
+  background-color: white;
+  margin:10px;
+}
+
+h1 {
+  color: #990000; 
+  font-size: x-large;
+}
+
+h2 {
+  color: #990000;
+  font-size: medium;
+}
+
+/* Make the text shrink to fit narrow windows, but not stretch too far in 
+wide windows. */ 
+p,h1,h2,div.content div {
+  max-width: 600px;
+  /* Hack for IE6 */
+  width: auto !important; width: 600px;
+}
+
+pre.codeinput {
+  background: #EEEEEE;
+  padding: 10px;
+}
+@media print {
+  pre.codeinput {word-wrap:break-word; width:100%;}
+} 
+
+span.keyword {color: #0000FF}
+span.comment {color: #228B22}
+span.string {color: #A020F0}
+span.untermstring {color: #B20000}
+span.syscmd {color: #B28C00}
+
+pre.codeoutput {
+  color: #666666;
+  padding: 10px;
+}
+
+pre.error {
+  color: red;
+}
+
+p.footer {
+  text-align: right;
+  font-size: xx-small;
+  font-weight: lighter;
+  font-style: italic;
+  color: gray;
+}
+
+  </style></head>
+   <body>
+      <div class="content">
+         <h1>FingerPrint Demo</h1>
+         <introduction>
+            <p>If manual comparison by a fingerprint expert is always done to say if two fingerprint images are coming from the same finger
+               in critical cases, automated methods are widely used now.
+            </p>
+            <p>Among all the biometric techniques, fingerprint-based identification is the oldest method which has been successfully used
+               in numerous applications. Everyone is known to have unique, immutable fingerprints. A fingerprint is made of a series of ridges
+               and furrows on the surface of the finger. The uniqueness of a fingerprint can be determined by the pattern of ridges and furrows
+               as well as the minutiae points. Minutiae points are local ridge characteristics that occur at either a ridge bifurcation or
+               a ridge ending.
+            </p>
+         </introduction>
+         <h2>Contents</h2>
+         <div>
+            <ul>
+               <li><a href="#3">Load image</a></li>
+               <li><a href="#4">Enhancement</a></li>
+               <li><a href="#5">Binarize</a></li>
+               <li><a href="#6">Thining</a></li>
+               <li><a href="#7">Minutiae</a></li>
+               <li><a href="#8">Termination</a></li>
+               <li><a href="#9">Bifurcation</a></li>
+               <li><a href="#10">Remarks</a></li>
+               <li><a href="#11">Process 1</a></li>
+               <li><a href="#12">Process 2</a></li>
+               <li><a href="#13">Process 3</a></li>
+               <li><a href="#15">ROI</a></li>
+               <li><a href="#17">Suppress extrema minutiae</a></li>
+               <li><a href="#18">Orientation</a></li>
+               <li><a href="#19">Termination Orientation</a></li>
+               <li><a href="#20">Bifurcation Orientation</a></li>
+               <li><a href="#21">Validation</a></li>
+               <li><a href="#22">Save in a text file</a></li>
+               <li><a href="#23">Minutia Match</a></li>
+               <li><a href="#24">GUI</a></li>
+            </ul>
+         </div>
+         <p>Florence Kussener, The MathWorks Application Engineer August 2007</p><pre class="codeinput">clear <span class="string">all</span>,close <span class="string">all</span>,clc
+</pre><h2>Load image<a name="3"></a></h2>
+         <p>The general shape of the fingerprint is generally used to pre-process the images, and reduce the search in large databases.
+            This uses the general directions of the lines of the fingerprint, and the presence of the core and the delta. Several categories
+            have been defined in the Henry system: whorl, right loop, left loop, arch, and tented arch.
+         </p>
+         <p>Most algorithms are using minutiae, the specific points like ridges ending, bifurcation... Only the position and direction
+            of these features are stored in the signature for further comparison.
+         </p><pre class="codeinput">I=imread(<span class="string">'Empreinte.bmp'</span>);
+imshow(I)
+set(gcf,<span class="string">'position'</span>,[1 1 600 600]);
+</pre><img vspace="5" hspace="5" src="fingerprint_01.png"> <h2>Enhancement<a name="4"></a></h2>
+         <p>A critical step in automatic fingerprint matching is to automatically and reliably extract minutiae from the input fingerprint
+            images. However, the performance of a minutiae extraction algorithm relies heavily on the quality of the input fingerprint
+            images. In order to ensure that the performance of an automatic fingerprint identification/verification system would be robust
+            with respect to the quality of the fingerprint images, it xould be essential to incorporate a fingerprint enhancement algorithm
+            in the minutiae extraction module.
+         </p>
+         <p>In our case, the quality of the image is really good, and we wwon't need to enhance our image.</p>
+         <h2>Binarize<a name="5"></a></h2>
+         <p>We binarize the image. After the operation, ridges in the fingerprint are highlighted with black color while furrow are white.</p><pre class="codeinput">J=I(:,:,1)&gt;160;
+imshow(J)
+set(gcf,<span class="string">'position'</span>,[1 1 600 600]);
+</pre><img vspace="5" hspace="5" src="fingerprint_02.png"> <h2>Thining<a name="6"></a></h2>
+         <p>Ridge thining is to eliminate the redundant pixels of ridges till the ridges are just one pixel wide.</p><pre class="codeinput">K=bwmorph(~J,<span class="string">'thin'</span>,<span class="string">'inf'</span>);
+imshow(~K)
+set(gcf,<span class="string">'position'</span>,[1 1 600 600]);
+</pre><img vspace="5" hspace="5" src="fingerprint_03.png"> <h2>Minutiae<a name="7"></a></h2>
+         <p>We filter the thinned ridge map by the filter "minutie". "minutie" compute the number of one-value of each 3x3 window: * if
+            the central is 1 and has only 1 one-value neighbor, then the central pixel is a termination. * if the central is 1 and has
+            3 one-value neighbor, then the central pixel is a bifurcation. * if the central is 1 and has 2 one-value neighbor, then the
+            central pixel is a usual pixel.
+         </p><pre class="codeinput">fun=@minutie;
+L = nlfilter(K,[3 3],fun);
+</pre><h2>Termination<a name="8"></a></h2><pre class="codeinput">LTerm=(L==1);
+imshow(LTerm)
+LTermLab=bwlabel(LTerm);
+propTerm=regionprops(LTermLab,<span class="string">'Centroid'</span>);
+CentroidTerm=round(cat(1,propTerm(:).Centroid));
+imshow(~K)
+set(gcf,<span class="string">'position'</span>,[1 1 600 600]);
+hold <span class="string">on</span>
+plot(CentroidTerm(:,1),CentroidTerm(:,2),<span class="string">'ro'</span>)
+</pre><img vspace="5" hspace="5" src="fingerprint_04.png"> <h2>Bifurcation<a name="9"></a></h2><pre class="codeinput">LBif=(L==3);
+LBifLab=bwlabel(LBif);
+propBif=regionprops(LBifLab,<span class="string">'Centroid'</span>,<span class="string">'Image'</span>);
+CentroidBif=round(cat(1,propBif(:).Centroid));
+plot(CentroidBif(:,1),CentroidBif(:,2),<span class="string">'go'</span>)
+</pre><img vspace="5" hspace="5" src="fingerprint_05.png"> <h2>Remarks<a name="10"></a></h2>
+         <p>We have a lot of spurious minutae. We are going to process them. process 1: if the distance between a termination and a biffurcation
+            is smaller than D, we remove this minutiae process 2: if the distance between two biffurcations is smaller than D, we remove
+            this minutia process 3: if the distance between two terminations is smaller than D, we remove this minutia
+         </p><pre class="codeinput">D=6;
+</pre><h2>Process 1<a name="11"></a></h2><pre class="codeinput">Distance=DistEuclidian(CentroidBif,CentroidTerm);
+SpuriousMinutae=Distance&lt;D;
+[i,j]=find(SpuriousMinutae);
+CentroidBif(i,:)=[];
+CentroidTerm(j,:)=[];
+</pre><h2>Process 2<a name="12"></a></h2><pre class="codeinput">Distance=DistEuclidian(CentroidBif);
+SpuriousMinutae=Distance&lt;D;
+[i,j]=find(SpuriousMinutae);
+CentroidBif(i,:)=[];
+</pre><h2>Process 3<a name="13"></a></h2><pre class="codeinput">Distance=DistEuclidian(CentroidTerm);
+SpuriousMinutae=Distance&lt;D;
+[i,j]=find(SpuriousMinutae);
+CentroidTerm(i,:)=[];
+</pre><pre class="codeinput">hold <span class="string">off</span>
+imshow(~K)
+hold <span class="string">on</span>
+plot(CentroidTerm(:,1),CentroidTerm(:,2),<span class="string">'ro'</span>)
+plot(CentroidBif(:,1),CentroidBif(:,2),<span class="string">'go'</span>)
+hold <span class="string">off</span>
+</pre><img vspace="5" hspace="5" src="fingerprint_06.png"> <h2>ROI<a name="15"></a></h2>
+         <p>We have to determine a ROI. For that, we consider the binary image, and we aply an closing on this image and an erosion. With
+            the GUI, I allow the use of ROI tools of MATLAB, to define manually the ROI.
+         </p><pre class="codeinput">Kopen=imclose(K,strel(<span class="string">'square'</span>,7));
+
+KopenClean= imfill(Kopen,<span class="string">'holes'</span>);
+KopenClean=bwareaopen(KopenClean,5);
+imshow(KopenClean)
+KopenClean([1 end],:)=0;
+KopenClean(:,[1 end])=0;
+ROI=imerode(KopenClean,strel(<span class="string">'disk'</span>,10));
+imshow(ROI)
+</pre><img vspace="5" hspace="5" src="fingerprint_07.png"> <pre class="codeinput">imshow(I)
+hold <span class="string">on</span>
+imshow(ROI)
+alpha(0.5)
+
+hold <span class="string">on</span>
+plot(CentroidTerm(:,1),CentroidTerm(:,2),<span class="string">'ro'</span>)
+plot(CentroidBif(:,1),CentroidBif(:,2),<span class="string">'go'</span>)
+hold <span class="string">off</span>
+</pre><img vspace="5" hspace="5" src="fingerprint_08.png"> <h2>Suppress extrema minutiae<a name="17"></a></h2>
+         <p>Once we defined the ROI, we can suppress minutiae external to this ROI.</p><pre class="codeinput">[m,n]=size(I(:,:,1));
+indTerm=sub2ind([m,n],CentroidTerm(:,1),CentroidTerm(:,2));
+Z=zeros(m,n);
+Z(indTerm)=1;
+ZTerm=Z.*ROI';
+[CentroidTermX,CentroidTermY]=find(ZTerm);
+
+indBif=sub2ind([m,n],CentroidBif(:,1),CentroidBif(:,2));
+Z=zeros(m,n);
+Z(indBif)=1;
+ZBif=Z.*ROI';
+[CentroidBifX,CentroidBifY]=find(ZBif);
+
+
+
+imshow(I)
+hold <span class="string">on</span>
+plot(CentroidTermX,CentroidTermY,<span class="string">'ro'</span>,<span class="string">'linewidth'</span>,2)
+plot(CentroidBifX,CentroidBifY,<span class="string">'go'</span>,<span class="string">'linewidth'</span>,2)
+</pre><img vspace="5" hspace="5" src="fingerprint_09.png"> <h2>Orientation<a name="18"></a></h2>
+         <p>Once we determined the differents minutiae, we have to find the orientation of each one</p><pre class="codeinput">Table=[3*pi/4 2*pi/3 pi/2 pi/3 pi/4
+       5*pi/6 0 0 0 pi/6
+       pi 0 0 0 0
+      -5*pi/6 0 0 0 -pi/6
+      -3*pi/4 -2*pi/3 -pi/2 -pi/3 -pi/4];
+</pre><h2>Termination Orientation<a name="19"></a></h2>
+         <p>We have to find the orientation of the termination. For finding that, we analyze the position of the pixel on the boundary
+            of a 5 x 5 bounding box of the termination. We compare this position to the Table variable. The Table variable gives the angle
+            in radian.
+         </p><pre class="codeinput"><span class="keyword">for</span> ind=1:length(CentroidTermX)
+    Klocal=K(CentroidTermY(ind)-2:CentroidTermY(ind)+2,CentroidTermX(ind)-2:CentroidTermX(ind)+2);
+    Klocal(2:end-1,2:end-1)=0;
+    [i,j]=find(Klocal);
+    OrientationTerm(ind,1)=Table(i,j);
+<span class="keyword">end</span>
+dxTerm=sin(OrientationTerm)*5;
+dyTerm=cos(OrientationTerm)*5;
+figure
+imshow(K)
+set(gcf,<span class="string">'position'</span>,[1 1 600 600]);
+hold <span class="string">on</span>
+plot(CentroidTermX,CentroidTermY,<span class="string">'ro'</span>,<span class="string">'linewidth'</span>,2)
+plot([CentroidTermX CentroidTermX+dyTerm]',<span class="keyword">...</span>
+    [CentroidTermY CentroidTermY-dxTerm]',<span class="string">'r'</span>,<span class="string">'linewidth'</span>,2)
+</pre><img vspace="5" hspace="5" src="fingerprint_10.png"> <h2>Bifurcation Orientation<a name="20"></a></h2><pre>For each bifurcation, we have three lines. So we operate the same
+process than in termination case three times.</pre><pre class="codeinput"><span class="keyword">for</span> ind=1:length(CentroidBifX)
+    Klocal=K(CentroidBifY(ind)-2:CentroidBifY(ind)+2,CentroidBifX(ind)-2:CentroidBifX(ind)+2);
+    Klocal(2:end-1,2:end-1)=0;
+    [i,j]=find(Klocal);
+    <span class="keyword">if</span> length(i)~=3
+        CentroidBifY(ind)=NaN;
+        CentroidBifX(ind)=NaN;
+        OrientationBif(ind)=NaN;
+    <span class="keyword">else</span>
+        <span class="keyword">for</span> k=1:3
+            OrientationBif(ind,k)=Table(i(k),j(k));
+            dxBif(ind,k)=sin(OrientationBif(ind,k))*5;
+            dyBif(ind,k)=cos(OrientationBif(ind,k))*5;
+
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+
+plot(CentroidBifX,CentroidBifY,<span class="string">'go'</span>,<span class="string">'linewidth'</span>,2)
+OrientationLinesX=[CentroidBifX CentroidBifX+dyBif(:,1);CentroidBifX CentroidBifX+dyBif(:,2);CentroidBifX CentroidBifX+dyBif(:,3)]';
+OrientationLinesY=[CentroidBifY CentroidBifY-dxBif(:,1);CentroidBifY CentroidBifY-dxBif(:,2);CentroidBifY CentroidBifY-dxBif(:,3)]';
+plot(OrientationLinesX,OrientationLinesY,<span class="string">'g'</span>,<span class="string">'linewidth'</span>,2)
+</pre><img vspace="5" hspace="5" src="fingerprint_11.png"> <h2>Validation<a name="21"></a></h2>
+         <p>In this step, we validate the minutiae (cf GUI)</p>
+         <h2>Save in a text file<a name="22"></a></h2>
+         <p>In this step, we are going to save the minutia in a file</p><pre class="codeinput">MinutiaTerm=[CentroidTermX,CentroidTermY,OrientationTerm];
+MinutiaBif=[CentroidBifX,CentroidBifY,OrientationBif];
+saveMinutia(<span class="string">'John Doe'</span>,MinutiaTerm,MinutiaBif);
+</pre><h2>Minutia Match<a name="23"></a></h2>
+         <p>Given two set of minutia of two fingerprint images, the minutia match algorithm determines whether the two minutia sets are
+            from the same finger or not. two steps: 1. Alignment stage 2. Match stage
+         </p>
+         <p>For this step, I would need a database I don't have...</p>
+         <h2>GUI<a name="24"></a></h2>
+         <p>TODO: cr&eacute;er le GUI associ&eacute;</p>
+         <p class="footer"><br>
+            Published with MATLAB&reg; 7.5<br></p>
+      </div>
+      <!--
+##### SOURCE BEGIN #####
+%% FingerPrint Demo
+% If manual comparison by a fingerprint expert is always done to say if two 
+% fingerprint images are coming from the same finger in critical cases, 
+% automated methods are widely used now. 
+%
+% Among all the biometric techniques, fingerprint-based identification is 
+% the oldest method which has been successfully used in numerous applications. 
+% Everyone is known to have unique, immutable fingerprints. A fingerprint 
+% is made of a series of ridges and furrows on the surface of the finger. 
+% The uniqueness of a fingerprint can be determined by the pattern of ridges 
+% and furrows as well as the minutiae points. Minutiae points are local ridge 
+% characteristics that occur at either a ridge bifurcation or a ridge
+% ending.
+
+%%
+% Florence Kussener, The MathWorks 
+% Application Engineer
+% August 2007
+%%
+
+clear all,close all,clc
+%% Load image
+% The general shape of the fingerprint is generally used to pre-process the
+% images, and reduce the search in large databases. This uses the general 
+% directions of the lines of the fingerprint, and the presence of the core 
+% and the delta. Several categories have been defined in the Henry system: 
+% whorl, right loop, left loop, arch, and tented arch. 
+%
+% Most algorithms are using minutiae, the specific points like ridges
+% ending, bifurcation... Only the position and direction of these features 
+% are stored in the signature for further comparison.
+I=imread('Empreinte.bmp');
+imshow(I)
+set(gcf,'position',[1 1 600 600]);
+
+%% Enhancement
+% A critical step in automatic fingerprint matching is to automatically and 
+% reliably extract minutiae from the input fingerprint images. However, the 
+% performance of a minutiae extraction algorithm relies heavily on the 
+% quality of the input fingerprint images. In order to ensure that the 
+% performance of an automatic fingerprint identification/verification system 
+% would be robust with respect to the quality of the fingerprint images, it 
+% xould be essential to incorporate a fingerprint enhancement algorithm in the 
+% minutiae extraction module.
+%
+% In our case, the quality of the image is really good, and we wwon't need
+% to enhance our image. 
+
+
+%% Binarize
+% We binarize the image. After the operation, ridges in the fingerprint are
+% highlighted with black color while furrow are white.
+J=I(:,:,1)>160;
+imshow(J)
+set(gcf,'position',[1 1 600 600]);
+
+%% Thining
+% Ridge thining is to eliminate the redundant pixels of ridges till the 
+% ridges are just one pixel wide.  
+K=bwmorph(~J,'thin','inf');
+imshow(~K)
+set(gcf,'position',[1 1 600 600]);
+%% Minutiae
+% We filter the thinned ridge map by the filter "minutie". "minutie"
+% compute the number of one-value of each 3x3 window:
+% * if the central is 1 and has only 1 one-value neighbor, then the central 
+% pixel is a termination.  
+% * if the central is 1 and has 3 one-value neighbor, then the central 
+% pixel is a bifurcation. 
+% * if the central is 1 and has 2 one-value neighbor, then the central 
+% pixel is a usual pixel. 
+fun=@minutie;
+L = nlfilter(K,[3 3],fun);
+
+%% Termination
+LTerm=(L==1);
+imshow(LTerm)
+LTermLab=bwlabel(LTerm);
+propTerm=regionprops(LTermLab,'Centroid');
+CentroidTerm=round(cat(1,propTerm(:).Centroid));
+imshow(~K)
+set(gcf,'position',[1 1 600 600]);
+hold on
+plot(CentroidTerm(:,1),CentroidTerm(:,2),'ro')
+
+%% Bifurcation
+LBif=(L==3);
+LBifLab=bwlabel(LBif);
+propBif=regionprops(LBifLab,'Centroid','Image');
+CentroidBif=round(cat(1,propBif(:).Centroid));
+plot(CentroidBif(:,1),CentroidBif(:,2),'go')
+%% Remarks
+% We have a lot of spurious minutae. 
+% We are going to process them. 
+% process 1: if the distance between a termination and a biffurcation is
+% smaller than D, we remove this minutiae
+% process 2: if the distance between two biffurcations is
+% smaller than D, we remove this minutia
+% process 3: if the distance between two terminations is
+% smaller than D, we remove this minutia
+D=6;
+%% Process 1
+Distance=DistEuclidian(CentroidBif,CentroidTerm);
+SpuriousMinutae=Distance<D;
+[i,j]=find(SpuriousMinutae);
+CentroidBif(i,:)=[];
+CentroidTerm(j,:)=[];
+
+%% Process 2
+Distance=DistEuclidian(CentroidBif);
+SpuriousMinutae=Distance<D;
+[i,j]=find(SpuriousMinutae);
+CentroidBif(i,:)=[];
+
+
+%% Process 3
+Distance=DistEuclidian(CentroidTerm);
+SpuriousMinutae=Distance<D;
+[i,j]=find(SpuriousMinutae);
+CentroidTerm(i,:)=[];
+%%
+
+hold off
+imshow(~K)
+hold on
+plot(CentroidTerm(:,1),CentroidTerm(:,2),'ro')
+plot(CentroidBif(:,1),CentroidBif(:,2),'go')
+hold off
+
+
+%% ROI
+% We have to determine a ROI. For that, we consider the binary image, and
+% we aply an closing on this image and an erosion. 
+% With the GUI, I allow the use of ROI tools of MATLAB, to define manually
+% the ROI.
+
+Kopen=imclose(K,strel('square',7));
+
+KopenClean= imfill(Kopen,'holes');
+KopenClean=bwareaopen(KopenClean,5);
+imshow(KopenClean)
+KopenClean([1 end],:)=0;
+KopenClean(:,[1 end])=0;
+ROI=imerode(KopenClean,strel('disk',10));
+imshow(ROI)
+
+%% 
+
+imshow(I)
+hold on
+imshow(ROI)
+alpha(0.5)
+
+hold on
+plot(CentroidTerm(:,1),CentroidTerm(:,2),'ro')
+plot(CentroidBif(:,1),CentroidBif(:,2),'go')
+hold off
+
+%% Suppress extrema minutiae
+% Once we defined the ROI, we can suppress minutiae external to this ROI.
+[m,n]=size(I(:,:,1));
+indTerm=sub2ind([m,n],CentroidTerm(:,1),CentroidTerm(:,2));
+Z=zeros(m,n);
+Z(indTerm)=1;
+ZTerm=Z.*ROI';
+[CentroidTermX,CentroidTermY]=find(ZTerm);
+
+indBif=sub2ind([m,n],CentroidBif(:,1),CentroidBif(:,2));
+Z=zeros(m,n);
+Z(indBif)=1;
+ZBif=Z.*ROI';
+[CentroidBifX,CentroidBifY]=find(ZBif);
+
+
+
+imshow(I)
+hold on
+plot(CentroidTermX,CentroidTermY,'ro','linewidth',2)
+plot(CentroidBifX,CentroidBifY,'go','linewidth',2)
+
+
+%% Orientation
+% Once we determined the differents minutiae, we have to find the
+% orientation of each one
+Table=[3*pi/4 2*pi/3 pi/2 pi/3 pi/4 
+       5*pi/6 0 0 0 pi/6
+       pi 0 0 0 0
+      -5*pi/6 0 0 0 -pi/6
+      -3*pi/4 -2*pi/3 -pi/2 -pi/3 -pi/4];
+%% Termination Orientation 
+% We have to find the orientation of the termination. 
+% For finding that, we analyze the position of the pixel on the boundary of
+% a 5 x 5 bounding box of the termination. We compare this position to the
+% Table variable. The Table variable gives the angle in radian.
+for ind=1:length(CentroidTermX)
+    Klocal=K(CentroidTermY(ind)-2:CentroidTermY(ind)+2,CentroidTermX(ind)-2:CentroidTermX(ind)+2);
+    Klocal(2:end-1,2:end-1)=0;
+    [i,j]=find(Klocal);
+    OrientationTerm(ind,1)=Table(i,j);
+end
+dxTerm=sin(OrientationTerm)*5;
+dyTerm=cos(OrientationTerm)*5;
+figure
+imshow(K)
+set(gcf,'position',[1 1 600 600]);
+hold on
+plot(CentroidTermX,CentroidTermY,'ro','linewidth',2)
+plot([CentroidTermX CentroidTermX+dyTerm]',...
+    [CentroidTermY CentroidTermY-dxTerm]','r','linewidth',2)
+
+
+%% Bifurcation Orientation
+%  For each bifurcation, we have three lines. So we operate the same
+%  process than in termination case three times.
+for ind=1:length(CentroidBifX)
+    Klocal=K(CentroidBifY(ind)-2:CentroidBifY(ind)+2,CentroidBifX(ind)-2:CentroidBifX(ind)+2);
+    Klocal(2:end-1,2:end-1)=0;
+    [i,j]=find(Klocal);
+    if length(i)~=3
+        CentroidBifY(ind)=NaN;
+        CentroidBifX(ind)=NaN;
+        OrientationBif(ind)=NaN;
+    else
+        for k=1:3
+            OrientationBif(ind,k)=Table(i(k),j(k));
+            dxBif(ind,k)=sin(OrientationBif(ind,k))*5;
+            dyBif(ind,k)=cos(OrientationBif(ind,k))*5;
+
+        end
+    end
+end
+
+plot(CentroidBifX,CentroidBifY,'go','linewidth',2)
+OrientationLinesX=[CentroidBifX CentroidBifX+dyBif(:,1);CentroidBifX CentroidBifX+dyBif(:,2);CentroidBifX CentroidBifX+dyBif(:,3)]';
+OrientationLinesY=[CentroidBifY CentroidBifY-dxBif(:,1);CentroidBifY CentroidBifY-dxBif(:,2);CentroidBifY CentroidBifY-dxBif(:,3)]';
+plot(OrientationLinesX,OrientationLinesY,'g','linewidth',2)
+%% Validation
+% In this step, we validate the minutiae (cf GUI)
+
+%% Save in a text file
+% In this step, we are going to save the minutia in a file
+MinutiaTerm=[CentroidTermX,CentroidTermY,OrientationTerm];
+MinutiaBif=[CentroidBifX,CentroidBifY,OrientationBif];
+saveMinutia('John Doe',MinutiaTerm,MinutiaBif);
+
+%% Minutia Match
+% Given two set of minutia of two fingerprint images, the minutia match
+% algorithm determines whether the two minutia sets are from the same
+% finger or not. 
+% two steps:
+% 1. Alignment stage
+% 2. Match stage
+%
+% For this step, I would need a database I don't have...
+
+%% GUI
+% TODO: créer le GUI associé
+
+##### SOURCE END #####
+-->
+   </body>
+</html>
